@@ -1,0 +1,256 @@
+---
+title: "Salud Mental en Estudiantes Universitarios"
+author: "Miguel C."
+date: "r Sys.Date()"
+output:
+  pdf_document: default
+  html_document: default
+engine: knitr
+knit_engine_opts:
+  python:
+    engine.opts: []
+---
+
+
+# Introducción
+
+Este análisis explora cómo factores como el sueño, el ejercicio, el estrés y otros hábitos afectan la salud mental y el rendimiento académico (GPA) de estudiantes universitarios.
+
+Dataset simulado con características realistas: valores nulos, datos inconsistentes, outliers y errores típicos de entrada.
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("mental_health_students.csv")
+```
+
+# Vista general del dataset
+
+```{python}
+df.head()
+df.info()
+df.describe()
+```
+
+# Limpieza de datos
+
+```{python}
+df['gender'] = df['gender'].replace({'M': 'Male', 'F': 'Female', 'f': 'Female', 'male': 'Male', 'female': 'Female'})
+df['gender'] = df['gender'].fillna('Unknown')
+df['seeks_help'] = df['seeks_help'].replace({'yes' : 'Yes', 'no' : 'No'})
+df['seeks_help'] = df['seeks_help'].fillna('no answer')
+df = df.drop_duplicates()
+
+df['hours_of_sleep'] = df['hours_of_sleep'].fillna(df['hours_of_sleep'].median())
+df['exercise_freq'] = df['exercise_freq'].fillna(df['exercise_freq'].mode()[0])
+df['semester_gpa'] = df['semester_gpa'].fillna(df['semester_gpa'].median())
+df['stress_level'] = df['stress_level'].fillna('unknown')
+```
+
+# Análisis Exploratorio de Datos (EDA)
+
+```{python}
+sns.histplot(df['semester_gpa'], kde=True)
+plt.title("Distribución del GPA")
+plt.show()
+```
+
+```{python}
+sns.histplot(df['hours_of_sleep'], kde=True)
+plt.title("Distribución de horas de sueño")
+plt.show()
+```
+
+```{python}
+sns.countplot(data=df, x='gender')
+plt.title("Género de los estudiantes")
+plt.show()
+```
+
+```{python}
+sns.boxplot(data=df, x='stress_level', y='semester_gpa')
+plt.title("GPA por nivel de estrés")
+plt.show()
+```
+
+```{python}
+sns.scatterplot(data=df, x='hours_of_sleep', y='semester_gpa')
+plt.title("Horas de sueño vs GPA")
+plt.show()
+```
+
+```{python}
+sns.boxplot(data=df, x='exercise_freq', y='mental_health_rating')
+plt.title("Ejercicio vs salud mental")
+plt.show()
+```
+
+# Conclusiones
+
+- Existen outliers en horas de sueño y GPA que podrían afectar el análisis si no se manejan.
+- Se observa que los niveles de estrés tienen impacto en el GPA.
+- El ejercicio frecuente parece estar relacionado con una mejor percepción de la salud mental.
+
+
+# Visualización avanzada y estrategias de imputación
+
+En este bloque analizamos variables relacionadas con salud mental y rendimiento académico en estudiantes universitarios, aplicando estrategias avanzadas de visualización y técnicas adecuadas de imputación.
+
+```{python}
+# Visualización con hue y palette
+sns.boxplot(data=df, x='stress_level', y='semester_gpa', hue='gender', palette='Set2')
+plt.title("GPA por nivel de estrés y género")
+plt.show()
+```
+
+```{python}
+sns.countplot(data=df, x='gender', hue='gender', palette='Set2', legend=False)
+plt.title("Distribución de género")
+plt.show()
+```
+
+```{python}
+# Subplots comparativos
+fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+sns.histplot(data=df, x='semester_gpa', kde=True, ax=axs[0])
+axs[0].set_title("Distribución del GPA")
+
+sns.histplot(data=df, x='hours_of_sleep', kde=True, ax=axs[1])
+axs[1].set_title("Distribución de horas de sueño")
+
+plt.tight_layout()
+plt.show()
+```
+
+## Estrategias de Imputación
+
+- `hours_of_sleep`: Imputar con **mediana** (hay outliers).
+- `exercise_freq`: Imputar con **moda** (discreta con valores comunes).
+- `stress_level`: Imputar con **moda** (ordinal).
+- `semester_gpa`: Imputar con **mediana** (hay extremos).
+- `gender`: Usar categoría especial `'Unknown'` por falta de moda clara.
+
+## Conclusiones
+
+- Usar `hue` y `palette` permite enriquecer visualmente los análisis comparativos.
+- Los `subplots` ayudan a ver múltiples variables en conjunto.
+- Elegir bien entre media, mediana y moda evita sesgos al imputar.
+
+# Análisis por Grupo y Visualización Comparativa
+
+En este bloque analizamos cómo cambia el rendimiento académico (GPA) de los estudiantes según factores como género, nivel de estrés y búsqueda de ayuda psicológica. Utilizamos `groupby()` en combinación con `barplot` para visualizar las diferencias entre subgrupos clave.
+
+
+
+## GPA promedio por género
+
+```{python}
+genero_gpa = df.groupby('gender')['semester_gpa'].mean().reset_index()
+sns.barplot(data=genero_gpa, x='gender', y='semester_gpa')
+plt.title("Promedio de GPA por género")
+plt.xlabel("Género")
+plt.ylabel("GPA")
+plt.show()
+```
+
+```{python}
+stress_gpa = df.groupby('stress_level')['semester_gpa'].mean().reset_index()
+order = ['low', 'medium', 'high', 'unknown']
+sns.barplot(data=stress_gpa, x='stress_level', y='semester_gpa', palette='Set2', order=order)
+plt.title("Promedio de GPA por nivel de estrés")
+plt.xlabel("Nivel de estrés")
+plt.ylabel("GPA")
+plt.show()
+```
+
+```{python}
+gpa_cross = df.groupby(['stress_level', 'seeks_help'])['semester_gpa'].mean().reset_index()
+order = ['low', 'medium', 'high', 'unknown']
+sns.barplot(data=gpa_cross, x='stress_level', y='semester_gpa', hue='seeks_help', palette='Set2', order=order)
+plt.title("GPA por nivel de estrés y si busca ayuda")
+plt.xlabel("Nivel de estrés")
+plt.ylabel("Promedio GPA")
+plt.legend(title="¿Busca ayuda?")
+plt.tight_layout()
+plt.show()
+```
+
+# Visualización de Combinaciones Cruzadas con Heatmaps
+
+En este bloque exploramos dos formas de analizar combinaciones entre variables categóricas usando `crosstab()` y `pivot_table()` para generar heatmaps.
+
+---
+
+## Heatmap 1 – Frecuencia de combinaciones (`crosstab`)
+
+Visualizamos cuántos estudiantes hay por combinación de nivel de estrés y si buscan ayuda.
+
+```{python}
+# Tabla cruzada con conteo de frecuencia
+tabla_frecuencia = pd.crosstab(df['stress_level'], df['seeks_help'])
+
+# Heatmap de frecuencia
+sns.heatmap(tabla_frecuencia, annot=True, cmap="PuBu", fmt='d')
+plt.title("Frecuencia por nivel de estrés y búsqueda de ayuda")
+plt.xlabel("¿Busca ayuda?")
+plt.ylabel("Nivel de estrés")
+plt.show()
+```
+
+## Heatmap 2 – Promedio de GPA por combinación (`pivot_table`)
+
+Visualizamos el promedio de GPA por combinación de nivel de estrés y búsqueda de ayuda utilizando una tabla dinámica con `pivot_table()`. Este heatmap permite identificar qué combinaciones están asociadas a un mejor desempeño académico.
+
+
+```{python}
+# Tabla dinámica con promedios de GPA
+tabla_promedios = pd.pivot_table(df, 
+                                  index='stress_level', 
+                                  columns='seeks_help', 
+                                  values='semester_gpa', 
+                                  aggfunc='mean')
+
+# Heatmap de promedio de GPA
+sns.heatmap(tabla_promedios, annot=True, cmap="PuBu", fmt=".2f")
+plt.title("Promedio de GPA por nivel de estrés y búsqueda de ayuda")
+plt.xlabel("¿Busca ayuda?")
+plt.ylabel("Nivel de estrés")
+plt.show()
+```
+
+# Conclusiones e Insights del Análisis por Grupo
+
+## 1. ¿Quiénes tienen mejor GPA?
+
+- Los estudiantes con **bajo nivel de estrés** presentan, en promedio, **mejor GPA**.
+- Sin embargo, dentro del grupo con **alto estrés**, aquellos que **no buscan ayuda** muestran un GPA ligeramente superior que quienes sí lo hacen.
+- Esto podría indicar que algunos estudiantes de alto rendimiento prefieren enfrentar la presión académica sin acudir a servicios de apoyo.
+
+## 2. ¿Diferencias entre géneros?
+
+- Se observó que el **GPA promedio en estudiantes masculinos y no binarios** es **ligeramente superior** al de las estudiantes femeninas.
+- Es importante analizar este resultado en contextos más amplios antes de llegar a conclusiones definitivas.
+
+## 3. Relación entre estrés y búsqueda de ayuda
+
+- Sorprendentemente, **los estudiantes con menor nivel de estrés son quienes más buscan ayuda**.
+- En contraste, quienes **reportan alto estrés tienden a no buscar ayuda**, lo que podría deberse a **falta de tiempo, estigma** o **desconocimiento** de los recursos disponibles.
+- Este patrón sugiere un posible **ciclo de rendimiento-exigencia** donde quienes tienen alto GPA también soportan más presión sin buscar apoyo.
+
+## 4. Insight clave para tomar acción institucional
+
+El cruce entre **nivel de estrés, búsqueda de ayuda y GPA** puede guiar a las instituciones a implementar estrategias de apoyo más accesibles, menos invasivas en tiempo, y que **no comprometan el rendimiento académico**. 
+Además, podría enfocarse en **romper estigmas** y **promover una cultura preventiva del bienestar emocional**, especialmente en estudiantes de alto rendimiento.
+
+---
+
+
+
+# Cierre personal
+
+Este proyecto me permitió aplicar de forma estructurada los conocimientos adquiridos sobre limpieza de datos, visualización exploratoria, análisis por grupo y estrategias de imputación. Fue desarrollado como parte de un programa intensivo enfocado en construir un portafolio profesional sólido en análisis de datos.
+
+Además de la práctica técnica, este análisis también integró habilidades de comunicación, interpretación de resultados y generación de insights accionables, los cuales son clave para la toma de decisiones basada en datos.
+
